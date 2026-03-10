@@ -271,6 +271,15 @@ export function Account<FieldName extends SheetFields<'account'>>({
                       setIsEditing(true);
                       break;
                     }
+                    case 'toggle-budget': {
+                      updateAccount.mutate({
+                        account: {
+                          ...account,
+                          offbudget: account.offbudget ? 0 : 1,
+                        },
+                      });
+                      break;
+                    }
                     default: {
                       throw new Error(`Unrecognized menu option: ${type}`);
                     }
@@ -279,10 +288,16 @@ export function Account<FieldName extends SheetFields<'account'>>({
                 }}
                 items={[
                   { name: 'rename', text: t('Rename') },
+                  !account.closed && {
+                    name: 'toggle-budget',
+                    text: account.offbudget
+                      ? t('Make on-budget')
+                      : t('Make off-budget'),
+                  },
                   account.closed
                     ? { name: 'reopen', text: t('Reopen') }
                     : { name: 'close', text: t('Close') },
-                ]}
+                ].filter(Boolean)}
               />
             </Popover>
           )}
