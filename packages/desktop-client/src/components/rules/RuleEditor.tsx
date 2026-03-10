@@ -149,13 +149,8 @@ export function OpSelect<T extends string>({
 }: OpSelectProps<T>) {
   const opOptions = useMemo(() => {
     const options = ops
-      // We don't support the `contains`, `doesNotContain`, `matches` operators
-      // for the id type rules yet
-      // TODO: Add matches op support for payees, accounts, categories.
       .filter(op =>
-        type === 'id'
-          ? !['contains', 'matches', 'doesNotContain', 'hasTags'].includes(op)
-          : true,
+        type === 'id' ? !['hasTags'].includes(op) : true,
       )
       .map(op => [op, formatOp(op, type)]);
 
@@ -863,6 +858,9 @@ function ConditionsList({
         } else if (field === 'op') {
           const op = value;
 
+          const isIdTextOp = (o: string) =>
+            ['contains', 'doesNotContain', 'matches'].includes(o);
+
           // Switching between oneOf and other operators is a
           // special-case. It changes the input type, so we need to
           // clear the value
@@ -888,6 +886,20 @@ function ConditionsList({
                 op: value,
               }),
             );
+          } else if (
+            cond.type === 'id' &&
+            isIdTextOp(op) &&
+            !isIdTextOp(cond.op)
+          ) {
+            // Switching from picker op to text op — reset value to empty string
+            return newInput(makeValue('', { ...cond, op: value }));
+          } else if (
+            cond.type === 'id' &&
+            !isIdTextOp(op) &&
+            isIdTextOp(cond.op)
+          ) {
+            // Switching from text op back to picker op — reset value to null
+            return newInput(makeValue(null, { ...cond, op: value }));
           } else if (cond.op !== 'isbetween' && op === 'isbetween') {
             // TODO: I don't think we need `makeValue` anymore. It
             // tries to parse the value as a float and we had to

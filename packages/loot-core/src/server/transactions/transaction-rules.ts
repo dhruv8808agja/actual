@@ -951,6 +951,13 @@ export async function prepareTransactionForRules(
     }
   }
 
+  if (trans.category) {
+    const category = await getCategory(trans.category);
+    if (category) {
+      r._category_name = category.name;
+    }
+  }
+
   r.balance = 0;
 
   if (trans.account) {

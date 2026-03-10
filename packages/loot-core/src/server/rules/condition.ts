@@ -237,6 +237,24 @@ export class Condition {
     let fieldValue = object[this.field];
     const type = this.type;
 
+    // For id-type fields with text-matching ops, match against the human-readable
+    // name rather than the UUID so that contains/matches/doesNotContain are useful.
+    const isTextOp =
+      this.op === 'contains' ||
+      this.op === 'doesNotContain' ||
+      this.op === 'matches';
+    if (type === 'id' && isTextOp) {
+      const nameMap: Record<string, string> = {
+        payee: 'payee_name',
+        account: '_account_name',
+        category: '_category_name',
+      };
+      const nameField = nameMap[this.field];
+      if (nameField && object[nameField] != null) {
+        fieldValue = object[nameField];
+      }
+    }
+
     if (type === 'string') {
       fieldValue ??= '';
     }
