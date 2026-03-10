@@ -22,6 +22,7 @@ import { usePayees } from '@desktop-client/hooks/usePayees';
 type ValueProps<T> = {
   value: T;
   field: unknown;
+  op?: unknown;
   valueIsRaw?: boolean;
   inline?: boolean;
   data?: unknown;
@@ -32,6 +33,7 @@ type ValueProps<T> = {
 export function Value<T>({
   value,
   field,
+  op,
   valueIsRaw,
   inline = false,
   data: dataProp,
@@ -124,6 +126,13 @@ export function Value<T>({
         case 'account':
         case 'rule':
           if (valueIsRaw) {
+            return value;
+          }
+          if (
+            op === 'contains' ||
+            op === 'doesNotContain' ||
+            op === 'matches'
+          ) {
             return value;
           }
           if (data && Array.isArray(data)) {

@@ -36,6 +36,7 @@ type GenericInputProps = {
       | {
           type: 'id';
           field: 'payee' | 'category' | 'category_group';
+          op?: RuleConditionOp;
         }
       | {
           type: 'id';
@@ -131,6 +132,28 @@ export const GenericInput = ({
   let content: JSX.Element | null = null;
   switch (props.type) {
     case 'id': {
+      const isTextOp =
+        props.op === 'contains' ||
+        props.op === 'doesNotContain' ||
+        props.op === 'matches';
+
+      if (isTextOp) {
+        content = (
+          <Input
+            ref={ref}
+            value={typeof props.value === 'string' ? props.value : ''}
+            placeholder={t('nothing')}
+            onChangeValue={
+              props.multi !== true
+                ? (props.onChange as (value: string) => void)
+                : undefined
+            }
+            style={inputStyle}
+          />
+        );
+        break;
+      }
+
       const showPlaceholder = props.multi ? props.value.length === 0 : true;
       const multiProps =
         props.multi === true
