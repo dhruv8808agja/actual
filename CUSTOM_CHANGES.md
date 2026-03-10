@@ -1,0 +1,105 @@
+# Custom Changes
+
+This file documents local modifications made to this fork of Actual Budget.
+
+---
+
+## 1. Text-matching operators for id-type fields (Payee, Account, Category)
+
+**Branch:** `fix/rules-id-field-text-ops`
+
+**Files changed:**
+- `packages/desktop-client/src/components/rules/RuleEditor.tsx`
+- `packages/desktop-client/src/components/util/GenericInput.tsx`
+- `packages/desktop-client/src/components/rules/Value.tsx`
+- `packages/desktop-client/src/components/rules/ConditionExpression.tsx`
+- `packages/loot-core/src/server/rules/condition.ts`
+- `packages/loot-core/src/server/transactions/transaction-rules.ts`
+
+### What was changed
+
+The rules engine backend already supported `contains`, `doesNotContain`, and `matches`
+(regex) operators for string fields, but the UI intentionally hid them for `id`-type
+fields (Payee, Account, Category) with a TODO comment:
+```
+// TODO: Add matches op support for payees, accounts, categories.
+```
+
+These operators were added to the UI and wired up end-to-end so that a single rule
+like `Payee contains domino` catches all Domino's payee variants instead of requiring
+one `is` rule per variant.
+
+### How it works
+
+- **UI (`RuleEditor.tsx`):** Removed the filter that hid `contains`/`doesNotContain`/
+  `matches` from the operator dropdown for `id`-type fields. Added value-reset logic
+  when switching between picker ops (is/oneOf) and text ops.
+
+- **UI (`GenericInput.tsx`):** When the selected op is a text op, renders a plain text
+  `<Input>` instead of the payee/account/category autocomplete picker.
+
+- **UI (`Value.tsx` + `ConditionExpression.tsx`):** Passes `op` through to the `Value`
+  component so the rule display shows the raw text value instead of trying to look it
+  up as an ID (which previously showed "(deleted)").
+
+- **Backend (`condition.ts`):** When `contains`/`doesNotContain`/`matches` is used on
+  an `id`-type field, the evaluator resolves the human-readable name (`payee_name`,
+  `_account_name`, `category_name`) instead of matching against the UUID. Falls back
+  to the UUID if the name is not resolved.
+
+- **Backend (`transaction-rules.ts`):** `prepareTransactionForRules` now also resolves
+  `_category_name` (payee and account were already resolved). Note: the field must be
+  prefixed with `_` — the DB layer silently strips `_`-prefixed fields before writing,
+  while unknown non-`_` fields throw an error (`Field "x" does not exist on table`).
+
+### Known side effects
+
+1. **Extra DB call per transaction:** `prepareTransactionForRules` now calls `getCategory`
+   for every transaction that has a category set. This is consistent with how payee and
+   account are handled but adds one more DB lookup per transaction during rule evaluation.
+   Can be noticeable on bulk "run rules on all transactions" for large datasets.
+
+2. **Unindexed rule scanning:** The `RuleIndexer` only indexes `is`/`isNot`/`oneOf`/
+   `notOneOf` operators. Rules using `contains`/`matches` on a Payee field go into the
+   wildcard `'*'` bucket and run against every transaction on every import — unlike `is`
+   rules which are O(1) lookups. Keep the number of such rules small to avoid slowing
+   imports.
+
+3. **Pre-stage rules won't match:** Rules run in two stages — `pre` (before payee
+   matching) and `post` (after). Since `payee_name` is only resolved after the payee
+   UUID is set, a `Payee contains X` rule placed in the `pre` stage will silently never
+   match. Use `post` stage (or `imported_payee` field) for text matching during import.
+
+4. **Behavior change on existing rules:** Previously, `payee contains X` was always
+   `false` (it matched against a UUID). It now matches against the payee name. Any
+   existing rule using these ops on an id field will now start matching.
+
+### Why not use `imported_payee` instead?
+
+`imported_payee` holds the raw bank string and is only populated at import time.
+For existing transactions that were already matched to a payee, `imported_payee` is
+blank and rules on it silently do nothing. The `Payee contains` approach works on
+both existing and newly imported transactions.
+
+---
+
+## 2. On-budget / Off-budget toggle for existing accounts
+
+**Files changed:**
+- `packages/desktop-client/src/components/sidebar/Account.tsx`
+- `packages/loot-core/src/server/accounts/app.ts`
+
+### What was changed
+
+The UI had no way to toggle an existing account between on-budget and off-budget after
+creation (only available in the create account modal). Added a **"Make off-budget"** /
+**"Make on-budget"** option to the account context menu in the sidebar (right-click or
+long-press). The backend `updateAccount` handler was also extended to accept the
+`offbudget` field since it previously only allowed `name` and `last_reconciled`.
+
+### Known side effects
+
+- Toggling does not retroactively fix past transactions or budget entries. Existing
+  transfers between this and other on-budget accounts may appear as categorized expenses
+  in past months after toggling.
+- Does not show for closed accounts.
