@@ -114,6 +114,8 @@ async function getAccounts(): Promise<AccountEntity[]> {
         balance_limit: dbAccount.balance_limit ?? null,
         account_sync_source: dbAccount.account_sync_source ?? null,
         last_sync: dbAccount.last_sync ?? null,
+        market_value: dbAccount.market_value ?? null,
+        market_value_date: dbAccount.market_value_date ?? null,
       }) satisfies AccountEntity,
   );
 }
