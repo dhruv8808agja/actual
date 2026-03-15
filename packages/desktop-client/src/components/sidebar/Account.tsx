@@ -248,55 +248,37 @@ export function Account<FieldName extends SheetFields<'account'>>({
               }
               right={
                 account?.account_sync_source === 'simpleFin' ? (
-                  <View style={{ flexDirection: 'row' }}>
-                    <View style={{ width: 80, alignItems: 'flex-end' }}>
-                      <CellValue binding={query} type="financial">
-                        {props => (
-                          <CellValueText
-                            {...props}
-                            style={{ textAlign: 'right' }}
-                          />
-                        )}
-                      </CellValue>
-                    </View>
-                    <View style={{ width: 80, alignItems: 'flex-end' }}>
-                      {account.actual_balance != null ? (
-                        <Text
-                          style={{
-                            ...styles.smallText,
-                            textAlign: 'right',
-                            color: theme.numberPositive,
-                            fontWeight: 700,
-                            fontStyle: 'italic',
-                          }}
-                        >
-                          {format(account.actual_balance, 'financial')}
-                        </Text>
-                      ) : (
-                        <Text
-                          style={{
-                            ...styles.smallText,
-                            textAlign: 'right',
-                            color: theme.pageTextSubdued,
-                            fontStyle: 'italic',
-                          }}
-                        >
-                          N/A
-                        </Text>
-                      )}
-                    </View>
+                  <View
+                    style={{ flexDirection: 'row', gap: 8, flexShrink: 0 }}
+                  >
+                    <CellValue binding={query} type="financial" />
+                    {account.actual_balance != null ? (
+                      <Text
+                        style={{
+                          ...styles.smallText,
+                          color: theme.numberPositive,
+                          fontWeight: 700,
+                          fontStyle: 'italic',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {format(account.actual_balance, 'financial')}
+                      </Text>
+                    ) : (
+                      <Text
+                        style={{
+                          ...styles.smallText,
+                          color: theme.pageTextSubdued,
+                          fontStyle: 'italic',
+                          flexShrink: 0,
+                        }}
+                      >
+                        N/A
+                      </Text>
+                    )}
                   </View>
                 ) : (
-                  <View style={{ width: 160, alignItems: 'flex-end' }}>
-                    <CellValue binding={query} type="financial">
-                      {props => (
-                        <CellValueText
-                          {...props}
-                          style={{ textAlign: 'right' }}
-                        />
-                      )}
-                    </CellValue>
-                  </View>
+                  <CellValue binding={query} type="financial" />
                 )
               }
             />
