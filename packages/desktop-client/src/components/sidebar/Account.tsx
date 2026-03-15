@@ -39,7 +39,10 @@ import type {
   OnDragChangeCallback,
   OnDropCallback,
 } from '@desktop-client/components/sort';
-import { CellValue } from '@desktop-client/components/spreadsheet/CellValue';
+import {
+  CellValue,
+  CellValueText,
+} from '@desktop-client/components/spreadsheet/CellValue';
 import { useContextMenu } from '@desktop-client/hooks/useContextMenu';
 import { useDragRef } from '@desktop-client/hooks/useDragRef';
 import { useIsTestEnv } from '@desktop-client/hooks/useIsTestEnv';
@@ -246,10 +249,17 @@ export function Account<FieldName extends SheetFields<'account'>>({
               right={
                 account?.account_sync_source === 'simpleFin' ? (
                   <View style={{ flexDirection: 'row' }}>
-                    <View style={{ width: 72, alignItems: 'flex-end' }}>
-                      <CellValue binding={query} type="financial" />
+                    <View style={{ width: 80, alignItems: 'flex-end' }}>
+                      <CellValue binding={query} type="financial">
+                        {props => (
+                          <CellValueText
+                            {...props}
+                            style={{ textAlign: 'right' }}
+                          />
+                        )}
+                      </CellValue>
                     </View>
-                    <View style={{ width: 72, alignItems: 'flex-end' }}>
+                    <View style={{ width: 80, alignItems: 'flex-end' }}>
                       {account.actual_balance != null ? (
                         <Text
                           style={{
@@ -277,8 +287,15 @@ export function Account<FieldName extends SheetFields<'account'>>({
                     </View>
                   </View>
                 ) : (
-                  <View style={{ width: 72, alignItems: 'flex-end' }}>
-                    <CellValue binding={query} type="financial" />
+                  <View style={{ width: 160, alignItems: 'flex-end' }}>
+                    <CellValue binding={query} type="financial">
+                      {props => (
+                        <CellValueText
+                          {...props}
+                          style={{ textAlign: 'right' }}
+                        />
+                      )}
+                    </CellValue>
                   </View>
                 )
               }
