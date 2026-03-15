@@ -249,7 +249,7 @@ export function Account<FieldName extends SheetFields<'account'>>({
               right={
                 account?.account_sync_source === 'simpleFin' ? (
                   <View
-                    style={{ flexDirection: 'row', gap: 8, flexShrink: 0 }}
+                    style={{ flexDirection: 'row', gap: 8, flexShrink: 0, marginLeft: 'auto' }}
                   >
                     <CellValue binding={query} type="financial" />
                     {account.actual_balance != null ? (
