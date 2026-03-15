@@ -181,7 +181,7 @@ transaction-derived running balance as a fallback. Controlled by `showCalculated
 in widget meta.
 
 - **Dashboard card:** Toggle via the "⋯" context menu ("Include/Hide estimated balances").
-- **Full page:** Toggle button in the page header (primary/normal variant shows ON/OFF state).
+- **Full page:** Toggle button in the page header (primary/normal variant shows ON/OFF state). **⚠️ Known bug: toggle button `onPress` never fires — click reaches the wrapper div but react-aria `usePress` does not trigger. See `DEBUG_TOGGLE.md` for full investigation.**
 - **Backend:** When `useCalculatedFallback=true`, finds accounts with no snapshots, computes
   their cumulative transaction balance at each snapshot date, and adds it to the net worth.
 
