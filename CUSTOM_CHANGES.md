@@ -139,6 +139,42 @@ After each SimpleFin bank sync, the institution-reported balance is stored as `a
 
 ---
 
+## 4. Actual Net Worth Widget (Phase 3)
+
+**Files changed:**
+- `packages/loot-core/src/server/aql/schema/index.ts`
+- `packages/loot-core/src/types/models/dashboard.ts`
+- `packages/desktop-client/src/components/reports/spreadsheets/actual-net-worth-spreadsheet.ts`
+- `packages/desktop-client/src/components/reports/graphs/ActualNetWorthGraph.tsx`
+- `packages/desktop-client/src/components/reports/reports/ActualNetWorthCard.tsx`
+- `packages/desktop-client/src/components/reports/reports/ActualNetWorth.tsx`
+- `packages/desktop-client/src/components/reports/ReportRouter.tsx`
+- `packages/desktop-client/src/components/reports/Overview.tsx`
+
+### What was changed
+
+Added an **Actual Net Worth** dashboard widget and full report page that charts the
+institution-reported (actual) balances over time from the `market_value_snapshots`
+table populated by SimpleFin bank sync.
+
+- **AQL schema:** Added `market_value_snapshots` table so it can be queried client-side.
+- **Widget type:** Added `ActualNetWorthWidget` (`actual-net-worth-card`) to `dashboard.ts`.
+- **Spreadsheet:** Queries `market_value_snapshots` for a date range, groups by date,
+  sums `actual_balance` across all accounts, skips days with no snapshot data.
+- **Graph:** Line chart (recharts `LineChart`) showing actual net worth over time with
+  date tooltip. Compact mode for dashboard card, full mode for report page.
+- **Dashboard card:** `ActualNetWorthCard` — shows current actual net worth + compact
+  line chart. Added to the "Add widget" menu in Overview.
+- **Full page:** `/reports/actual-net-worth` and `/reports/actual-net-worth/:id`.
+
+### Known side effects
+
+- Only shows data for days when a SimpleFin bank sync occurred (snapshot data).
+- Sums all accounts with snapshots; accounts without SimpleFin sync are not included.
+- Current net worth shown is the latest snapshot date's sum, not today's calculated value.
+
+---
+
 ## Development workflow
 
 ### Fast UI deploy (browser-only changes)

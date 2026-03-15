@@ -105,6 +105,15 @@ export type MarkdownWidget = AbstractWidget<
   { content: string; text_align?: 'left' | 'right' | 'center' }
 >;
 
+export type ActualNetWorthWidget = AbstractWidget<
+  'actual-net-worth-card',
+  {
+    name?: string;
+    startDate?: string;
+    endDate?: string;
+  } | null
+>;
+
 type SpecializedWidget =
   | NetWorthWidget
   | CashFlowWidget
@@ -114,7 +123,8 @@ type SpecializedWidget =
   | MarkdownWidget
   | SummaryWidget
   | CalendarWidget
-  | FormulaWidget;
+  | FormulaWidget
+  | ActualNetWorthWidget;
 export type DashboardWidgetEntity = SpecializedWidget | CustomReportWidget;
 export type NewDashboardWidgetEntity = Omit<
   DashboardWidgetEntity,

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Route, Routes } from 'react-router';
 
+import { ActualNetWorth } from './reports/ActualNetWorth';
 import { BudgetAnalysis } from './reports/BudgetAnalysis';
 import { Calendar } from './reports/Calendar';
 import { CashFlow } from './reports/CashFlow';
@@ -48,6 +49,8 @@ export function ReportRouter() {
       <Route path="/calendar/:id" element={<Calendar />} />
       <Route path="/formula" element={<Formula />} />
       <Route path="/formula/:id" element={<Formula />} />
+      <Route path="/actual-net-worth" element={<ActualNetWorth />} />
+      <Route path="/actual-net-worth/:id" element={<ActualNetWorth />} />
     </Routes>
   );
 }

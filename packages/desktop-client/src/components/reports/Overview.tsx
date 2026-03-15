@@ -26,6 +26,7 @@ import { NON_DRAGGABLE_AREA_CLASS_NAME } from './constants';
 import { DashboardHeader } from './DashboardHeader';
 import { DashboardSelector } from './DashboardSelector';
 import { LoadingIndicator } from './LoadingIndicator';
+import { ActualNetWorthCard } from './reports/ActualNetWorthCard';
 import { BudgetAnalysisCard } from './reports/BudgetAnalysisCard';
 import { CalendarCard } from './reports/CalendarCard';
 import { CashFlowCard } from './reports/CashFlowCard';
@@ -568,6 +569,10 @@ export function Overview({ dashboard }: OverviewProps) {
                               name: 'net-worth-card' as const,
                               text: t('Net worth graph'),
                             },
+                            {
+                              name: 'actual-net-worth-card' as const,
+                              text: t('Actual net worth'),
+                            },
                             ...(crossoverReportEnabled
                               ? [
                                   {
@@ -852,6 +857,17 @@ export function Overview({ dashboard }: OverviewProps) {
                         />
                       ) : widget.type === 'formula-card' && formulaMode ? (
                         <FormulaCard
+                          widgetId={item.i}
+                          isEditing={isEditing}
+                          meta={widget.meta}
+                          onMetaChange={newMeta => onMetaChange(item, newMeta)}
+                          onRemove={() => onRemoveWidget(item.i)}
+                          onCopy={targetDashboardId =>
+                            onCopyWidget(item.i, targetDashboardId)
+                          }
+                        />
+                      ) : widget.type === 'actual-net-worth-card' ? (
+                        <ActualNetWorthCard
                           widgetId={item.i}
                           isEditing={isEditing}
                           meta={widget.meta}

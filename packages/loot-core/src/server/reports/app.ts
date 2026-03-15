@@ -172,11 +172,57 @@ async function deleteReport(id: CustomReportEntity['id']) {
   await db.delete_('custom_reports', id);
 }
 
+type ActualNetWorthSnapshot = { date: string; net_worth: number };
+
+async function getActualNetWorthSnapshots({
+  startDate,
+  endDate,
+}: {
+  startDate: string;
+  endDate: string;
+}): Promise<ActualNetWorthSnapshot[]> {
+  // For each distinct date in the range, carry forward the most recent
+  // snapshot per account (so accounts that didn't sync that day still count).
+  return Promise.resolve(
+    db.runQuery<ActualNetWorthSnapshot>(
+      `WITH dates AS (
+         SELECT DISTINCT date FROM market_value_snapshots WHERE date >= ? AND date <= ?
+       ),
+       accounts AS (
+         SELECT DISTINCT account_id FROM market_value_snapshots
+       ),
+       carried AS (
+         SELECT
+           d.date,
+           (
+             SELECT SUM(m.actual_balance)
+             FROM market_value_snapshots m
+             WHERE m.account_id = a.account_id
+               AND m.date = (
+                 SELECT MAX(m2.date) FROM market_value_snapshots m2
+                 WHERE m2.account_id = a.account_id AND m2.date <= d.date
+               )
+           ) as account_value
+         FROM dates d
+         CROSS JOIN accounts a
+       )
+       SELECT date, SUM(account_value) as net_worth
+       FROM carried
+       WHERE account_value IS NOT NULL
+       GROUP BY date
+       ORDER BY date ASC`,
+      [startDate, endDate],
+      true,
+    ),
+  );
+}
+
 export type ReportsHandlers = {
   'report/get': typeof getReports;
   'report/create': typeof createReport;
   'report/update': typeof updateReport;
   'report/delete': typeof deleteReport;
+  'report/actual-net-worth-snapshots': typeof getActualNetWorthSnapshots;
 };
 
 // Expose functions to the client
@@ -186,3 +232,4 @@ app.method('report/get', getReports);
 app.method('report/create', mutator(undoable(createReport)));
 app.method('report/update', mutator(undoable(updateReport)));
 app.method('report/delete', mutator(undoable(deleteReport)));
+app.method('report/actual-net-worth-snapshots', getActualNetWorthSnapshots);
