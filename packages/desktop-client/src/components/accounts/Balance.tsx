@@ -197,7 +197,7 @@ function ActualBalance({ balanceQuery, account }: ActualBalanceProps) {
 
   const actualBalance = account.actual_balance!;
   const drift =
-    transactionBalance != null ? transactionBalance - actualBalance : null;
+    transactionBalance != null ? actualBalance - transactionBalance : null;
 
   const dateLabel = account.actual_balance_date
     ? formatDate(new Date(account.actual_balance_date), 'MMM d')
