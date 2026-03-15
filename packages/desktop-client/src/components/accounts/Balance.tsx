@@ -9,6 +9,8 @@ import { theme } from '@actual-app/components/theme';
 import { View } from '@actual-app/components/view';
 import { useHover } from 'usehooks-ts';
 
+import { format as formatDate } from 'date-fns';
+
 import { q } from 'loot-core/shared/query';
 import type { Query } from 'loot-core/shared/query';
 import { getScheduledAmount } from 'loot-core/shared/schedules';
@@ -176,6 +178,61 @@ function MoreBalances({ balanceQuery }: MoreBalancesProps) {
   );
 }
 
+type MarketValueBalanceProps = {
+  balanceQuery: { name: `balance-query-${string}`; query: Query };
+  account: AccountEntity;
+};
+
+function MarketValueBalance({ balanceQuery, account }: MarketValueBalanceProps) {
+  const { t } = useTranslation();
+  const format = useFormat();
+
+  const transactionBalance = useSheetValue<
+    'balance',
+    `balance-query-${string}`
+  >({
+    name: balanceQuery.name as `balance-query-${string}`,
+    query: balanceQuery.query,
+  });
+
+  const marketValue = account.market_value!;
+  const drift =
+    transactionBalance != null ? marketValue - transactionBalance : null;
+
+  const dateLabel = account.market_value_date
+    ? formatDate(new Date(account.market_value_date), 'MMM d')
+    : null;
+
+  return (
+    <>
+      <DetailedBalance
+        name={
+          dateLabel
+            ? t('Market value ({{date}}):', { date: dateLabel })
+            : t('Market value:')
+        }
+        balance={marketValue}
+      />
+      {drift != null && (
+        <Text
+          style={{
+            borderRadius: 4,
+            padding: '4px 6px',
+            backgroundColor: theme.pillBackground,
+            color: drift >= 0 ? theme.numberPositive : theme.numberNegative,
+          }}
+        >
+          {t('Drift:')}{' '}
+          <FinancialText style={{ fontWeight: 600 }}>
+            {drift >= 0 ? '+' : ''}
+            {format(drift, 'financial')}
+          </FinancialText>
+        </Text>
+      )}
+    </>
+  );
+}
+
 type BalancesProps = {
   balanceQuery: { name: `balance-query-${string}`; query: Query };
   showExtraBalances: boolean;
@@ -260,6 +317,11 @@ export function Balances({
       </Button>
 
       {showExtraBalances && <MoreBalances balanceQuery={balanceQuery} />}
+
+      {account?.account_sync_source === 'simpleFin' &&
+        account?.market_value != null && (
+          <MarketValueBalance balanceQuery={balanceQuery} account={account} />
+        )}
 
       {selectedItems.size > 0 && (
         <SelectedBalance selectedItems={selectedItems} account={account} />

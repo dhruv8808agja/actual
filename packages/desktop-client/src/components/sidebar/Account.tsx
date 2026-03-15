@@ -43,6 +43,7 @@ import { CellValue } from '@desktop-client/components/spreadsheet/CellValue';
 import { useContextMenu } from '@desktop-client/hooks/useContextMenu';
 import { useDragRef } from '@desktop-client/hooks/useDragRef';
 import { useIsTestEnv } from '@desktop-client/hooks/useIsTestEnv';
+import { useFormat } from '@desktop-client/hooks/useFormat';
 import { useNotes } from '@desktop-client/hooks/useNotes';
 import { useSyncedPref } from '@desktop-client/hooks/useSyncedPref';
 import { openAccountCloseModal } from '@desktop-client/modals/modalsSlice';
@@ -138,6 +139,7 @@ export function Account<FieldName extends SheetFields<'account'>>({
   const needsTooltip = !!account?.id && !isTouchDevice;
   const reopenAccount = useReopenAccountMutation();
   const updateAccount = useUpdateAccountMutation();
+  const format = useFormat();
 
   const accountRow = (
     <View
@@ -243,6 +245,32 @@ export function Account<FieldName extends SheetFields<'account'>>({
               }
               right={<CellValue binding={query} type="financial" />}
             />
+            {account?.account_sync_source === 'simpleFin' &&
+              account?.market_value != null && (
+                <AlignedText
+                  left={
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        color: theme.pageTextSubdued,
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      mkt
+                    </Text>
+                  }
+                  right={
+                    <Text
+                      style={{
+                        fontSize: 10,
+                        color: theme.pageTextSubdued,
+                      }}
+                    >
+                      {format(account.market_value, 'financial')}
+                    </Text>
+                  }
+                />
+              )}
           </Link>
           {account && (
             <Popover
