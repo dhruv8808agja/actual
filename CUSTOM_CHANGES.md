@@ -142,8 +142,8 @@ After each SimpleFin bank sync, the institution-reported balance is stored as `a
 ## 4. Actual Net Worth Widget (Phase 3)
 
 **Files changed:**
-- `packages/loot-core/src/server/aql/schema/index.ts`
 - `packages/loot-core/src/types/models/dashboard.ts`
+- `packages/loot-core/src/server/reports/app.ts`
 - `packages/desktop-client/src/components/reports/spreadsheets/actual-net-worth-spreadsheet.ts`
 - `packages/desktop-client/src/components/reports/graphs/ActualNetWorthGraph.tsx`
 - `packages/desktop-client/src/components/reports/reports/ActualNetWorthCard.tsx`
@@ -153,25 +153,44 @@ After each SimpleFin bank sync, the institution-reported balance is stored as `a
 
 ### What was changed
 
-Added an **Actual Net Worth** dashboard widget and full report page that charts the
-institution-reported (actual) balances over time from the `market_value_snapshots`
+Added an **Actual Net Worth** dashboard widget and full report page that charts
+institution-reported (`actual_balance`) balances over time from the `market_value_snapshots`
 table populated by SimpleFin bank sync.
 
-- **AQL schema:** Added `market_value_snapshots` table so it can be queried client-side.
-- **Widget type:** Added `ActualNetWorthWidget` (`actual-net-worth-card`) to `dashboard.ts`.
-- **Spreadsheet:** Queries `market_value_snapshots` for a date range, groups by date,
-  sums `actual_balance` across all accounts, skips days with no snapshot data.
-- **Graph:** Line chart (recharts `LineChart`) showing actual net worth over time with
-  date tooltip. Compact mode for dashboard card, full mode for report page.
-- **Dashboard card:** `ActualNetWorthCard` — shows current actual net worth + compact
-  line chart. Added to the "Add widget" menu in Overview.
-- **Full page:** `/reports/actual-net-worth` and `/reports/actual-net-worth/:id`.
+- **Widget type:** Added `ActualNetWorthWidget` (`actual-net-worth-card`) to `dashboard.ts`
+  with `name`, `startDate`, `endDate`, and `showCalculatedFallback` meta fields.
+- **Backend handler (`reports/app.ts`):** Added `report/actual-net-worth-snapshots` handler
+  using a carry-forward CTE SQL query. For each snapshot date, uses each account's most
+  recent `actual_balance` at or before that date (not just accounts that synced on that
+  exact day). Called directly via `send()` — not via AQL — to avoid AQL schema validation
+  on custom tables.
+- **Spreadsheet:** Calls the backend handler via `send()`, converts rows to `{date, netWorth}`
+  data points, computes `currentNetWorth` as the last data point's value.
+- **Graph (`ActualNetWorthGraph.tsx`):** Area chart (recharts `AreaChart`) with gradient fill
+  matching the original Net Worth widget's style — positive/negative split gradient, privacy
+  mode support, compact mode for dashboard card, full mode with tooltips for report page.
+- **Dashboard card (`ActualNetWorthCard.tsx`):** Shows current actual net worth + compact chart.
+  Context menu includes toggle for estimated balances. Added to the "Add widget" menu.
+- **Full page (`ActualNetWorth.tsx`):** `/reports/actual-net-worth` and
+  `/reports/actual-net-worth/:id`. Toggle button in header for estimated balances.
+
+### Estimated balances toggle
+
+Accounts with no SimpleFin snapshots at all can optionally be included using their
+transaction-derived running balance as a fallback. Controlled by `showCalculatedFallback`
+in widget meta.
+
+- **Dashboard card:** Toggle via the "⋯" context menu ("Include/Hide estimated balances").
+- **Full page:** Toggle button in the page header (primary/normal variant shows ON/OFF state).
+- **Backend:** When `useCalculatedFallback=true`, finds accounts with no snapshots, computes
+  their cumulative transaction balance at each snapshot date, and adds it to the net worth.
 
 ### Known side effects
 
-- Only shows data for days when a SimpleFin bank sync occurred (snapshot data).
-- Sums all accounts with snapshots; accounts without SimpleFin sync are not included.
-- Current net worth shown is the latest snapshot date's sum, not today's calculated value.
+- Only shows data points for days when at least one SimpleFin bank sync occurred.
+- Carry-forward means the chart reflects each account's last known actual balance, not
+  its value on that exact date.
+- Estimated balances (fallback) are transaction-derived and don't reflect unrealized gains/losses.
 
 ---
 

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Block } from '@actual-app/components/block';
@@ -6,6 +6,7 @@ import { useResponsive } from '@actual-app/components/hooks/useResponsive';
 import { styles } from '@actual-app/components/styles';
 import { View } from '@actual-app/components/view';
 
+import { send } from 'loot-core/platform/client/connection';
 import * as monthUtils from 'loot-core/shared/months';
 import type { ActualNetWorthWidget } from 'loot-core/types/models';
 
@@ -15,8 +16,7 @@ import { ActualNetWorthGraph } from '@desktop-client/components/reports/graphs/A
 import { LoadingIndicator } from '@desktop-client/components/reports/LoadingIndicator';
 import { ReportCard } from '@desktop-client/components/reports/ReportCard';
 import { ReportCardName } from '@desktop-client/components/reports/ReportCardName';
-import { createSpreadsheet } from '@desktop-client/components/reports/spreadsheets/actual-net-worth-spreadsheet';
-import { useReport } from '@desktop-client/components/reports/useReport';
+import type { ActualNetWorthData } from '@desktop-client/components/reports/spreadsheets/actual-net-worth-spreadsheet';
 import { useFormat } from '@desktop-client/hooks/useFormat';
 
 type ActualNetWorthCardProps = {
@@ -45,12 +45,32 @@ export function ActualNetWorthCard({
   const startDate =
     meta?.startDate ?? monthUtils.subMonths(monthUtils.currentMonth(), 11);
   const endDate = meta?.endDate ?? monthUtils.currentMonth();
+  const showCalculatedFallback = meta?.showCalculatedFallback ?? false;
 
-  const params = useMemo(
-    () => createSpreadsheet(startDate, endDate),
-    [startDate, endDate],
-  );
-  const data = useReport('actual_net_worth', params);
+  const [data, setData] = useState<ActualNetWorthData | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setData(null);
+    void send('report/actual-net-worth-snapshots', {
+      startDate: monthUtils.firstDayOfMonth(startDate),
+      endDate: monthUtils.lastDayOfMonth(endDate),
+      useCalculatedFallback: showCalculatedFallback,
+    }).then((rows: unknown) => {
+      if (cancelled) return;
+      const typedRows = rows as { date: string; net_worth: number }[];
+      const graphData = typedRows.map(r => ({
+        date: r.date,
+        netWorth: r.net_worth,
+      }));
+      const currentNetWorth =
+        graphData.length > 0 ? graphData[graphData.length - 1].netWorth : 0;
+      setData({ graphData, currentNetWorth });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [startDate, endDate, showCalculatedFallback]);
 
   return (
     <ReportCard
@@ -59,12 +79,24 @@ export function ActualNetWorthCard({
       to={`/reports/actual-net-worth/${widgetId}`}
       menuItems={[
         { name: 'rename', text: t('Rename') },
+        {
+          name: 'toggle-fallback',
+          text: showCalculatedFallback
+            ? t('Hide estimated balances')
+            : t('Include estimated balances'),
+        },
         { name: 'remove', text: t('Remove') },
       ]}
       onMenuSelect={item => {
         switch (item) {
           case 'rename':
             setNameMenuOpen(true);
+            break;
+          case 'toggle-fallback':
+            onMetaChange({
+              ...meta,
+              showCalculatedFallback: !showCalculatedFallback,
+            });
             break;
           case 'remove':
             onRemove();

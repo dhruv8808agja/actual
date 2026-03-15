@@ -177,44 +177,110 @@ type ActualNetWorthSnapshot = { date: string; net_worth: number };
 async function getActualNetWorthSnapshots({
   startDate,
   endDate,
+  useCalculatedFallback = false,
 }: {
   startDate: string;
   endDate: string;
+  useCalculatedFallback?: boolean;
 }): Promise<ActualNetWorthSnapshot[]> {
-  // For each distinct date in the range, carry forward the most recent
-  // snapshot per account (so accounts that didn't sync that day still count).
-  return Promise.resolve(
-    db.runQuery<ActualNetWorthSnapshot>(
-      `WITH dates AS (
-         SELECT DISTINCT date FROM market_value_snapshots WHERE date >= ? AND date <= ?
-       ),
-       accounts AS (
-         SELECT DISTINCT account_id FROM market_value_snapshots
-       ),
-       carried AS (
-         SELECT
-           d.date,
-           (
-             SELECT SUM(m.actual_balance)
-             FROM market_value_snapshots m
-             WHERE m.account_id = a.account_id
-               AND m.date = (
-                 SELECT MAX(m2.date) FROM market_value_snapshots m2
-                 WHERE m2.account_id = a.account_id AND m2.date <= d.date
-               )
-           ) as account_value
-         FROM dates d
-         CROSS JOIN accounts a
-       )
-       SELECT date, SUM(account_value) as net_worth
-       FROM carried
-       WHERE account_value IS NOT NULL
-       GROUP BY date
-       ORDER BY date ASC`,
-      [startDate, endDate],
-      true,
-    ),
+  // Carry-forward: for each date with a snapshot, use each snapshot account's
+  // most recent actual_balance at or before that date.
+  const snapshotRows = db.runQuery<ActualNetWorthSnapshot>(
+    `WITH dates AS (
+       SELECT DISTINCT date FROM market_value_snapshots WHERE date >= ? AND date <= ?
+     ),
+     accounts AS (
+       SELECT DISTINCT account_id FROM market_value_snapshots
+     ),
+     carried AS (
+       SELECT
+         d.date,
+         (
+           SELECT SUM(m.actual_balance)
+           FROM market_value_snapshots m
+           WHERE m.account_id = a.account_id
+             AND m.date = (
+               SELECT MAX(m2.date) FROM market_value_snapshots m2
+               WHERE m2.account_id = a.account_id AND m2.date <= d.date
+             )
+         ) as account_value
+       FROM dates d
+       CROSS JOIN accounts a
+     )
+     SELECT date, SUM(account_value) as net_worth
+     FROM carried
+     WHERE account_value IS NOT NULL
+     GROUP BY date
+     ORDER BY date ASC`,
+    [startDate, endDate],
+    true,
   );
+
+  if (!useCalculatedFallback || snapshotRows.length === 0) {
+    return snapshotRows;
+  }
+
+  // Find accounts that have NO snapshots at all — these use transaction-derived balance.
+  const fallbackAccounts = db.runQuery<{ id: string }>(
+    `SELECT id FROM accounts
+     WHERE tombstone = 0 AND closed = 0
+       AND id NOT IN (SELECT DISTINCT account_id FROM market_value_snapshots)`,
+    [],
+    true,
+  );
+
+  if (fallbackAccounts.length === 0) {
+    return snapshotRows;
+  }
+
+  // Fetch daily transaction sums per fallback account up to endDate.
+  const placeholders = fallbackAccounts.map(() => '?').join(',');
+  const txRows = db.runQuery<{ acct: string; date: string; amount: number }>(
+    `SELECT acct, date, SUM(amount) as amount
+     FROM transactions
+     WHERE acct IN (${placeholders})
+       AND tombstone = 0
+       AND isChild = 0
+       AND date <= ?
+     GROUP BY acct, date
+     ORDER BY acct, date ASC`,
+    [...fallbackAccounts.map(a => a.id), endDate],
+    true,
+  );
+
+  // Build cumulative balance per fallback account: Map<accountId, sorted [{date, cumBalance}]>
+  const cumByAccount = new Map<string, { date: string; cumBalance: number }[]>();
+  for (const acct of fallbackAccounts) {
+    cumByAccount.set(acct.id, []);
+  }
+  // txRows is already sorted by acct, date
+  const runningTotals = new Map<string, number>();
+  for (const row of txRows) {
+    const prev = runningTotals.get(row.acct) ?? 0;
+    const cum = prev + row.amount;
+    runningTotals.set(row.acct, cum);
+    cumByAccount.get(row.acct)!.push({ date: row.date, cumBalance: cum });
+  }
+
+  // For a given account and date, find its running balance at or before that date.
+  function balanceAsOf(accountId: string, date: string): number {
+    const entries = cumByAccount.get(accountId) ?? [];
+    let balance = 0;
+    for (const entry of entries) {
+      if (entry.date <= date) balance = entry.cumBalance;
+      else break;
+    }
+    return balance;
+  }
+
+  // Add fallback balances to each snapshot date point.
+  return snapshotRows.map(row => {
+    const fallbackSum = fallbackAccounts.reduce(
+      (sum, acct) => sum + balanceAsOf(acct.id, row.date),
+      0,
+    );
+    return { date: row.date, net_worth: row.net_worth + fallbackSum };
+  });
 }
 
 export type ReportsHandlers = {

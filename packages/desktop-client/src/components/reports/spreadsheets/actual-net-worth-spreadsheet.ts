@@ -13,7 +13,11 @@ export type ActualNetWorthData = {
   currentNetWorth: number;
 };
 
-export function createSpreadsheet(startMonth: string, endMonth: string) {
+export function createSpreadsheet(
+  startMonth: string,
+  endMonth: string,
+  useCalculatedFallback = false,
+) {
   return async (
     _spreadsheet: ReturnType<typeof useSpreadsheet>,
     setData: (data: ActualNetWorthData) => void,
@@ -24,6 +28,7 @@ export function createSpreadsheet(startMonth: string, endMonth: string) {
     const rows = await send('report/actual-net-worth-snapshots', {
       startDate,
       endDate,
+      useCalculatedFallback,
     });
 
     const graphData: ActualNetWorthDataPoint[] = (

@@ -111,6 +111,7 @@ export type ActualNetWorthWidget = AbstractWidget<
     name?: string;
     startDate?: string;
     endDate?: string;
+    showCalculatedFallback?: boolean;
   } | null
 >;
 
