@@ -103,3 +103,58 @@ long-press). The backend `updateAccount` handler was also extended to accept the
   transfers between this and other on-budget accounts may appear as categorized expenses
   in past months after toggling.
 - Does not show for closed accounts.
+
+---
+
+## 3. SimpleFin actual balance tracking
+
+**Branch:** `fix/market-value-tracking` (merged into `feature/dhruv`)
+
+**Files changed:**
+- `packages/loot-core/migrations/1773550270894_add_market_value_to_accounts.sql`
+- `packages/loot-core/migrations/1773550270895_add_market_value_snapshots.sql`
+- `packages/loot-core/migrations/1773550270896_rename_market_value_to_live_balance.sql`
+- `packages/loot-core/migrations/1773550270897_rename_live_balance_to_actual_balance.sql`
+- `packages/loot-core/src/types/models/account.ts`
+- `packages/loot-core/src/server/db/types/index.ts`
+- `packages/loot-core/src/server/accounts/sync.ts`
+- `packages/loot-core/src/server/accounts/app.ts`
+- `packages/desktop-client/src/components/accounts/Balance.tsx`
+- `packages/desktop-client/src/components/sidebar/Account.tsx`
+
+### What was changed
+
+After each SimpleFin bank sync, the institution-reported balance is stored as `actual_balance` on the account (alongside the existing transaction-derived balance). This allows tracking drift between what Actual has recorded and what the institution reports — useful for investment/brokerage accounts where market value fluctuates independently of transactions.
+
+- **DB:** Added `actual_balance` and `actual_balance_date` columns to the `accounts` table. Added `market_value_snapshots` table for time-series history.
+- **Sync (`sync.ts`):** After `updateAccountBalance`, calls `updateAccountActualBalance` for SimpleFin accounts, writing both the current balance and a daily snapshot.
+- **API (`app.ts`):** `getAccounts` now includes `actual_balance` and `actual_balance_date` in the returned account objects.
+- **Sidebar (`Account.tsx`):** SimpleFin accounts show two balance columns — tracked (transaction-derived, default color) and actual (institution-reported, green bold italic). Non-SimpleFin accounts show a single column. Shows "N/A" when actual balance hasn't been synced yet.
+- **Account detail (`Balance.tsx`):** Shows "Actual balance (date):" pill and "Drift:" pill (actual − tracked; positive = green).
+
+### Known side effects
+
+- `actual_balance` is written via direct SQL (same pattern as `balance_current`) and does NOT sync via CRDT to other devices — it is re-populated on each bank sync.
+- For accounts where SimpleFin reports the total portfolio value (e.g. Robinhood), `actual_balance` reflects market value, not just deposited cash. Drift will fluctuate with market prices.
+
+---
+
+## Development workflow
+
+### Fast UI deploy (browser-only changes)
+
+When only modifying UI files (`packages/desktop-client`, `packages/component-library`), use the fast deploy script instead of a full image rebuild:
+
+```bash
+cd /home/dagja/actual && ./fast-deploy-ui.sh
+```
+
+This builds only the browser bundle (~2 min) and hot-copies it into the running container. No container restart needed — just hard-refresh the browser.
+
+**Use full image rebuild for:** `sync.ts`, migrations, loot-core server code, auto-sync changes.
+
+```bash
+cd /home/dagja/actual
+docker build -f sync-server.Dockerfile -t actual-budget-custom:latest .
+cd /srv/docker/actual-budget && docker compose up -d --force-recreate actual
+```
