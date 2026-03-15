@@ -1,0 +1,4 @@
+BEGIN TRANSACTION;
+ALTER TABLE accounts ADD COLUMN market_value INTEGER;
+ALTER TABLE accounts ADD COLUMN market_value_date TEXT;
+COMMIT;

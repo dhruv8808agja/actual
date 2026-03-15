@@ -1,0 +1,19 @@
+{
+  "name": "@actual-app/auto-sync",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Custom auto-sync service using actual-app/api with market value support",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@actual-app/api": "workspace:*",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "@types/node-cron": "^3.0.11"
+  }
+}
