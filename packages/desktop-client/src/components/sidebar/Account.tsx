@@ -244,23 +244,36 @@ export function Account<FieldName extends SheetFields<'account'>>({
                 )
               }
               right={
-                account?.account_sync_source === 'simpleFin' &&
-                account?.actual_balance != null ? (
+                account?.account_sync_source === 'simpleFin' ? (
                   <View style={{ flexDirection: 'row' }}>
                     <View style={{ width: 72, alignItems: 'flex-end' }}>
                       <CellValue binding={query} type="financial" />
                     </View>
                     <View style={{ width: 72, alignItems: 'flex-end' }}>
-                      <Text
-                        style={{
-                          ...styles.smallText,
-                          color: theme.numberPositive,
-                          fontWeight: 700,
-                          fontStyle: 'italic',
-                        }}
-                      >
-                        {format(account.actual_balance, 'financial')}
-                      </Text>
+                      {account.actual_balance != null ? (
+                        <Text
+                          style={{
+                            ...styles.smallText,
+                            textAlign: 'right',
+                            color: theme.numberPositive,
+                            fontWeight: 700,
+                            fontStyle: 'italic',
+                          }}
+                        >
+                          {format(account.actual_balance, 'financial')}
+                        </Text>
+                      ) : (
+                        <Text
+                          style={{
+                            ...styles.smallText,
+                            textAlign: 'right',
+                            color: theme.pageTextSubdued,
+                            fontStyle: 'italic',
+                          }}
+                        >
+                          N/A
+                        </Text>
+                      )}
                     </View>
                   </View>
                 ) : (
