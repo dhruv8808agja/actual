@@ -178,12 +178,12 @@ function MoreBalances({ balanceQuery }: MoreBalancesProps) {
   );
 }
 
-type MarketValueBalanceProps = {
+type LiveBalanceProps = {
   balanceQuery: { name: `balance-query-${string}`; query: Query };
   account: AccountEntity;
 };
 
-function MarketValueBalance({ balanceQuery, account }: MarketValueBalanceProps) {
+function LiveBalance({ balanceQuery, account }: LiveBalanceProps) {
   const { t } = useTranslation();
   const format = useFormat();
 
@@ -195,12 +195,12 @@ function MarketValueBalance({ balanceQuery, account }: MarketValueBalanceProps) 
     query: balanceQuery.query,
   });
 
-  const marketValue = account.market_value!;
+  const liveBalance = account.live_balance!;
   const drift =
-    transactionBalance != null ? marketValue - transactionBalance : null;
+    transactionBalance != null ? transactionBalance - liveBalance : null;
 
-  const dateLabel = account.market_value_date
-    ? formatDate(new Date(account.market_value_date), 'MMM d')
+  const dateLabel = account.live_balance_date
+    ? formatDate(new Date(account.live_balance_date), 'MMM d')
     : null;
 
   return (
@@ -208,10 +208,10 @@ function MarketValueBalance({ balanceQuery, account }: MarketValueBalanceProps) 
       <DetailedBalance
         name={
           dateLabel
-            ? t('Market value ({{date}}):', { date: dateLabel })
-            : t('Market value:')
+            ? t('Live balance ({{date}}):', { date: dateLabel })
+            : t('Live balance:')
         }
-        balance={marketValue}
+        balance={liveBalance}
       />
       {drift != null && (
         <Text
@@ -319,8 +319,8 @@ export function Balances({
       {showExtraBalances && <MoreBalances balanceQuery={balanceQuery} />}
 
       {account?.account_sync_source === 'simpleFin' &&
-        account?.market_value != null && (
-          <MarketValueBalance balanceQuery={balanceQuery} account={account} />
+        account?.live_balance != null && (
+          <LiveBalance balanceQuery={balanceQuery} account={account} />
         )}
 
       {selectedItems.size > 0 && (

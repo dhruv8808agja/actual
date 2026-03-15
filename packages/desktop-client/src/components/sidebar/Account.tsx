@@ -243,34 +243,36 @@ export function Account<FieldName extends SheetFields<'account'>>({
                   name
                 )
               }
-              right={<CellValue binding={query} type="financial" />}
+              right={
+                account?.account_sync_source === 'simpleFin' &&
+                account?.live_balance != null ? (
+                  <View
+                    style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end' }}
+                  >
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text
+                        style={{ fontSize: 8, color: theme.pageTextSubdued }}
+                      >
+                        actual
+                      </Text>
+                      <CellValue binding={query} type="financial" />
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text
+                        style={{ fontSize: 8, color: theme.pageTextSubdued }}
+                      >
+                        live
+                      </Text>
+                      <Text style={{ ...styles.smallText }}>
+                        {format(account.live_balance, 'financial')}
+                      </Text>
+                    </View>
+                  </View>
+                ) : (
+                  <CellValue binding={query} type="financial" />
+                )
+              }
             />
-            {account?.account_sync_source === 'simpleFin' &&
-              account?.market_value != null && (
-                <AlignedText
-                  left={
-                    <Text
-                      style={{
-                        fontSize: 10,
-                        color: theme.pageTextSubdued,
-                        fontStyle: 'italic',
-                      }}
-                    >
-                      mkt
-                    </Text>
-                  }
-                  right={
-                    <Text
-                      style={{
-                        fontSize: 10,
-                        color: theme.pageTextSubdued,
-                      }}
-                    >
-                      {format(account.market_value, 'financial')}
-                    </Text>
-                  }
-                />
-              )}
           </Link>
           {account && (
             <Popover

@@ -74,20 +74,20 @@ async function updateAccountBalance(id: AccountEntity['id'], balance: number) {
   ]);
 }
 
-async function updateAccountMarketValue(
+async function updateAccountLiveBalance(
   id: AccountEntity['id'],
-  marketValue: number,
+  liveBalance: number,
 ) {
   const today = monthUtils.currentDay();
   db.runQuery(
-    'UPDATE accounts SET market_value = ?, market_value_date = ? WHERE id = ?',
-    [marketValue, today, id],
+    'UPDATE accounts SET live_balance = ?, live_balance_date = ? WHERE id = ?',
+    [liveBalance, today, id],
   );
   db.runQuery(
-    `INSERT INTO market_value_snapshots (id, account_id, date, market_value)
+    `INSERT INTO market_value_snapshots (id, account_id, date, live_balance)
      VALUES (?, ?, ?, ?)
-     ON CONFLICT(account_id, date) DO UPDATE SET market_value = excluded.market_value`,
-    [uuidv4(), id, today, marketValue],
+     ON CONFLICT(account_id, date) DO UPDATE SET live_balance = excluded.live_balance`,
+    [uuidv4(), id, today, liveBalance],
   );
 }
 
@@ -1028,7 +1028,7 @@ async function processBankSyncDownload(
     if (currentBalance != null) {
       await updateAccountBalance(id, currentBalance);
       if (acctRow.account_sync_source === 'simpleFin') {
-        await updateAccountMarketValue(id, currentBalance);
+        await updateAccountLiveBalance(id, currentBalance);
       }
     }
 
