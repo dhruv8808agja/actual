@@ -178,12 +178,12 @@ function MoreBalances({ balanceQuery }: MoreBalancesProps) {
   );
 }
 
-type LiveBalanceProps = {
+type ActualBalanceProps = {
   balanceQuery: { name: `balance-query-${string}`; query: Query };
   account: AccountEntity;
 };
 
-function LiveBalance({ balanceQuery, account }: LiveBalanceProps) {
+function ActualBalance({ balanceQuery, account }: ActualBalanceProps) {
   const { t } = useTranslation();
   const format = useFormat();
 
@@ -195,12 +195,12 @@ function LiveBalance({ balanceQuery, account }: LiveBalanceProps) {
     query: balanceQuery.query,
   });
 
-  const liveBalance = account.live_balance!;
+  const actualBalance = account.actual_balance!;
   const drift =
-    transactionBalance != null ? transactionBalance - liveBalance : null;
+    transactionBalance != null ? transactionBalance - actualBalance : null;
 
-  const dateLabel = account.live_balance_date
-    ? formatDate(new Date(account.live_balance_date), 'MMM d')
+  const dateLabel = account.actual_balance_date
+    ? formatDate(new Date(account.actual_balance_date), 'MMM d')
     : null;
 
   return (
@@ -208,10 +208,10 @@ function LiveBalance({ balanceQuery, account }: LiveBalanceProps) {
       <DetailedBalance
         name={
           dateLabel
-            ? t('Live balance ({{date}}):', { date: dateLabel })
-            : t('Live balance:')
+            ? t('Actual balance ({{date}}):', { date: dateLabel })
+            : t('Actual balance:')
         }
-        balance={liveBalance}
+        balance={actualBalance}
       />
       {drift != null && (
         <Text
@@ -319,8 +319,8 @@ export function Balances({
       {showExtraBalances && <MoreBalances balanceQuery={balanceQuery} />}
 
       {account?.account_sync_source === 'simpleFin' &&
-        account?.live_balance != null && (
-          <LiveBalance balanceQuery={balanceQuery} account={account} />
+        account?.actual_balance != null && (
+          <ActualBalance balanceQuery={balanceQuery} account={account} />
         )}
 
       {selectedItems.size > 0 && (

@@ -245,7 +245,7 @@ export function Account<FieldName extends SheetFields<'account'>>({
               }
               right={
                 account?.account_sync_source === 'simpleFin' &&
-                account?.live_balance != null ? (
+                account?.actual_balance != null ? (
                   <View
                     style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-end' }}
                   >
@@ -253,7 +253,7 @@ export function Account<FieldName extends SheetFields<'account'>>({
                       <Text
                         style={{ fontSize: 8, color: theme.pageTextSubdued }}
                       >
-                        actual
+                        tracked
                       </Text>
                       <CellValue binding={query} type="financial" />
                     </View>
@@ -261,10 +261,10 @@ export function Account<FieldName extends SheetFields<'account'>>({
                       <Text
                         style={{ fontSize: 8, color: theme.pageTextSubdued }}
                       >
-                        live
+                        actual
                       </Text>
                       <Text style={{ ...styles.smallText }}>
-                        {format(account.live_balance, 'financial')}
+                        {format(account.actual_balance, 'financial')}
                       </Text>
                     </View>
                   </View>

@@ -19,8 +19,8 @@ export type AccountEntity = {
   balance_limit: number | null;
   account_sync_source: AccountSyncSource | null;
   last_sync: string | null;
-  live_balance?: number | null;
-  live_balance_date?: string | null;
+  actual_balance?: number | null;
+  actual_balance_date?: string | null;
 };
 
 export type AccountSyncSource = 'simpleFin' | 'goCardless' | 'pluggyai';
