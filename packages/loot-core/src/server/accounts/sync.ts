@@ -74,6 +74,23 @@ async function updateAccountBalance(id: AccountEntity['id'], balance: number) {
   ]);
 }
 
+async function updateAccountMarketValue(
+  id: AccountEntity['id'],
+  marketValue: number,
+) {
+  const today = monthUtils.currentDay();
+  db.runQuery(
+    'UPDATE accounts SET market_value = ?, market_value_date = ? WHERE id = ?',
+    [marketValue, today, id],
+  );
+  db.runQuery(
+    `INSERT INTO market_value_snapshots (id, account_id, date, market_value)
+     VALUES (?, ?, ?, ?)
+     ON CONFLICT(account_id, date) DO UPDATE SET market_value = excluded.market_value`,
+    [uuidv4(), id, today, marketValue],
+  );
+}
+
 async function getAccountOldestTransaction(id): Promise<TransactionEntity> {
   return (
     await aqlQuery(
@@ -1010,6 +1027,9 @@ async function processBankSyncDownload(
 
     if (currentBalance != null) {
       await updateAccountBalance(id, currentBalance);
+      if (acctRow.account_sync_source === 'simpleFin') {
+        await updateAccountMarketValue(id, currentBalance);
+      }
     }
 
     return result;
